@@ -10,7 +10,7 @@ use axum::{
 use reqwest::StatusCode;
 use serde::Deserialize;
 use std::str::FromStr;
-use tracing::{info, Level};
+use tracing::{info, warn, Level};
 use tracing_subscriber::{filter::Targets, layer::SubscriberExt, util::SubscriberInitExt};
 
 #[tokio::main]
@@ -27,8 +27,14 @@ async fn main() {
 
     let addr = "0.0.0.0:5000".parse().unwrap();
     info!("listening on {}", addr);
+    
+    let quit_sig = async {
+        _ = tokio::signal::ctrl_c().await;
+        warn!("Initiating graceful shutdown");
+    };
     axum::Server::bind(&addr)
         .serve(app.into_make_service())
+        .with_graceful_shutdown(quit_sig)
         .await
         .unwrap();
 }
